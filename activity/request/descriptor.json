@@ -1,0 +1,93 @@
+{
+    "name": "fabric-request",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Fabric Request",
+    "description": "This activity sends a Fabric client request",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-client/activity/request",
+    "homepage": "http://github.com/open-dovetail/fabric-client/tree/master/activity/request",
+    "settings": [{
+            "name": "connectionName",
+            "required": true,
+            "type": "string",
+            "description": "name to identify a Fabric network to connect"
+        },
+        {
+            "name": "channelID",
+            "required": true,
+            "type": "string",
+            "description": "the channel where the chaincode is running, e.g., mychannel"
+        },
+        {
+            "name": "chaincodeID",
+            "required": true,
+            "type": "string",
+            "description": "name of the chaincode, e.g. marble_cc"
+        },
+        {
+            "name": "transactionName",
+            "required": true,
+            "type": "string",
+            "description": "name of the transaction to invoke"
+        },
+        {
+            "name": "parameters",
+            "type": "string",
+            "description": "comma delimited names of input parameters, using format name:value, where sample value represents the non-string type, e.g., 0, 0.0, true"
+        },
+        {
+            "name": "requestType",
+            "required": true,
+            "type": "string",
+            "description": "Fabric request type",
+            "allowed": ["invoke", "query"]
+        }
+    ],
+    "inputs": [{
+            "name": "orgName",
+            "type": "string",
+            "description": "name of the user's organization. default value is the client org in network config."
+        },
+        {
+            "name": "userName",
+            "required": true,
+            "type": "string",
+            "description": "client user name of the specified organization, e.g., Admin or User1"
+        },
+        {
+            "name": "timeoutMillis",
+            "type": "integer",
+            "description": "request timeout in milliseconds"
+        },
+        {
+            "name": "endpoints",
+            "type": "any",
+            "description": "one or array of endpoints of the target peer node, e.g., 'peer-0.org1.example.com'. default is randomly chosen from available peers in network config."
+        },
+        {
+            "name": "parameters",
+            "type": "object",
+            "description": "values for names of the transaction parameters as defined in settings"
+        },
+        {
+            "name": "transient",
+            "type": "object",
+            "description": "name and value objects for transient data of the request."
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer"
+        },
+        {
+            "name": "message",
+            "type": "string"
+        },
+        {
+            "name": "result",
+            "type": "any",
+            "description": "result can be array or JSON object"
+        }
+    ]
+}
