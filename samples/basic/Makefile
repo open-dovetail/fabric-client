@@ -24,14 +24,14 @@ build: $(APP_FILE) clean
 
 .PHONY: run
 run:
-	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations $(SRC_PATH)/$(APP_NAME)_app
+	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=7979 FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations $(SRC_PATH)/$(APP_NAME)_app
 
 .PHONY: test
 test:
-	curl -X PUT "http://localhost:8989/asset/initledger"
+	curl -X PUT "http://localhost:7979/asset/initledger"
 	sleep 5
-	curl -X GET "http://localhost:8989/asset/readasset?id=asset1"
-	curl -X GET "http://localhost:8989/asset/readasset?id=asset2"
+	curl -X GET "http://localhost:7979/asset/readasset?id=asset1"
+	curl -X GET "http://localhost:7979/asset/readasset?id=asset2"
 
 .PHONY: start
 start:

@@ -10,66 +10,61 @@
     "github.com/project-flogo/contrib/trigger/rest",
     "github.com/project-flogo/flow"
   ],
-  "triggers": [
-    {
-      "id": "receive_http_message",
-      "ref": "#rest",
-      "name": "Receive HTTP Message",
-      "description": "Simple REST Trigger",
-      "settings": {
-        "port": 8989
-      },
-      "handlers": [
-        {
-          "settings": {
-            "method": "PUT",
-            "path": "/asset/initledger"
-          },
-          "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:init_ledger"
-            },
-            "output": {
-              "code": "=$.code",
-              "data": "=$.data"
-            }
-          }
+  "triggers": [{
+    "id": "receive_http_message",
+    "ref": "#rest",
+    "name": "Receive HTTP Message",
+    "description": "Simple REST Trigger",
+    "settings": {
+      "port": "=$property[\"PORT\"]"
+    },
+    "handlers": [{
+        "settings": {
+          "method": "PUT",
+          "path": "/asset/initledger"
         },
-        {
+        "action": {
+          "ref": "#flow",
           "settings": {
-            "method": "GET",
-            "path": "/asset/readasset"
+            "flowURI": "res://flow:init_ledger"
           },
-          "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:read_asset"
-            },
-            "input": {
-              "parameters": {
-                "mapping": {
-                  "id": "=$.queryParams.id"
-                }
-              }
-            },
-            "output": {
-              "code": "=$.code",
-              "data": "=$.data"
-            }
+          "output": {
+            "code": "=$.code",
+            "data": "=$.data"
           }
         }
-      ]
-    }
-  ],
-  "resources": [
-    {
+      },
+      {
+        "settings": {
+          "method": "GET",
+          "path": "/asset/readasset"
+        },
+        "action": {
+          "ref": "#flow",
+          "settings": {
+            "flowURI": "res://flow:read_asset"
+          },
+          "input": {
+            "parameters": {
+              "mapping": {
+                "id": "=$.queryParams.id"
+              }
+            }
+          },
+          "output": {
+            "code": "=$.code",
+            "data": "=$.data"
+          }
+        }
+      }
+    ]
+  }],
+  "resources": [{
       "id": "flow:init_ledger",
       "data": {
         "name": "InitLedger",
         "metadata": {
-          "output": [
-            {
+          "output": [{
               "name": "code",
               "type": "integer"
             },
@@ -79,20 +74,19 @@
             }
           ]
         },
-        "tasks": [
-          {
+        "tasks": [{
             "id": "request_2",
             "name": "Fabric Request",
             "description": "This activity sends a Fabric client request",
             "activity": {
               "ref": "#request",
               "input": {
-                "userName": "Admin"
+                "userName": "=$property[\"APPUSER\"]"
               },
               "settings": {
-                "connectionName": "test-network",
-                "channelID": "mychannel",
-                "chaincodeID": "basic",
+                "connectionName": "=$property[\"NETWORK\"]",
+                "channelID": "=$property[\"CHANNEL\"]",
+                "chaincodeID": "=$property[\"CHAINCODE\"]",
                 "transactionName": "InitLedger",
                 "requestType": "invoke"
               }
@@ -113,12 +107,10 @@
             }
           }
         ],
-        "links": [
-          {
-            "from": "request_2",
-            "to": "actreturn_3"
-          }
-        ]
+        "links": [{
+          "from": "request_2",
+          "to": "actreturn_3"
+        }]
       }
     },
     {
@@ -126,14 +118,11 @@
       "data": {
         "name": "ReadAsset",
         "metadata": {
-          "input": [
-            {
-              "name": "parameters",
-              "type": "object"
-            }
-          ],
-          "output": [
-            {
+          "input": [{
+            "name": "parameters",
+            "type": "object"
+          }],
+          "output": [{
               "name": "code",
               "type": "integer"
             },
@@ -143,21 +132,20 @@
             }
           ]
         },
-        "tasks": [
-          {
+        "tasks": [{
             "id": "request_2",
             "name": "Fabric Request",
             "description": "This activity sends a Fabric client request",
             "activity": {
               "ref": "#request",
               "input": {
-                "userName": "Admin",
+                "userName": "=$property[\"APPUSER\"]",
                 "parameters": "=$flow.parameters"
               },
               "settings": {
-                "chaincodeID": "basic",
-                "channelID": "mychannel",
-                "connectionName": "test-network",
+                "chaincodeID": "=$property[\"CHAINCODE\"]",
+                "channelID": "=$property[\"CHANNEL\"]",
+                "connectionName": "=$property[\"NETWORK\"]",
                 "parameters": "id",
                 "requestType": "query",
                 "transactionName": "ReadAsset"
@@ -179,13 +167,37 @@
             }
           }
         ],
-        "links": [
-          {
-            "from": "request_2",
-            "to": "actreturn_3"
-          }
-        ]
+        "links": [{
+          "from": "request_2",
+          "to": "actreturn_3"
+        }]
       }
+    }
+  ],
+  "properties": [{
+      "name": "CHAINCODE",
+      "type": "string",
+      "value": "basic"
+    },
+    {
+      "name": "CHANNEL",
+      "type": "string",
+      "value": "mychannel"
+    },
+    {
+      "name": "NETWORK",
+      "type": "string",
+      "value": "test-network"
+    },
+    {
+      "name": "PORT",
+      "type": "integer",
+      "value": 8989
+    },
+    {
+      "name": "APPUSER",
+      "type": "string",
+      "value": "Admin"
     }
   ]
 }
