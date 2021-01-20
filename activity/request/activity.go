@@ -27,7 +27,9 @@ var EntityMatcher []byte
 // InitializeNetwork can be called to initialize Fabric network config
 func InitializeNetwork(config, matcher []byte) {
 	NetworkConfig = config
-	EntityMatcher = matcher
+	if len(matcher) > 0 {
+		EntityMatcher = matcher
+	}
 }
 
 // Create a new logger

@@ -85,7 +85,7 @@ func NewFabricClient(config ConnectorSpec) (*FabricClient, error) {
 func networkConfigProvider(networkConfig []byte, entityMatcherOverride []byte) core.ConfigProvider {
 	configProvider := config.FromRaw(networkConfig, configType)
 
-	if entityMatcherOverride != nil {
+	if len(entityMatcherOverride) > 0 {
 		return func() ([]core.ConfigBackend, error) {
 			matcherProvider := config.FromRaw(entityMatcherOverride, configType)
 			matcherBackends, err := matcherProvider()
