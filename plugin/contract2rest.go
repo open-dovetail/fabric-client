@@ -23,10 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	clientUser = "_cid"
-)
-
 var enterprise bool
 var contractFile string
 var restRoot string
@@ -87,7 +83,8 @@ func createRESTApp(spec *contract.Spec, fe bool) (*app.Config, error) {
 		Imports: []string{
 			"github.com/open-dovetail/fabric-client/activity/request",
 			"github.com/project-flogo/contrib/activity/actreturn",
-			"github.com/project-flogo/contrib/trigger/rest",
+			"github.com/open-dovetail/dovetail-contrib/trigger/rest",
+			"github.com/open-dovetail/dovetail-contrib/function/dovetail",
 			"github.com/project-flogo/flow",
 		},
 		Properties: fabricSampleProperties(),
@@ -188,7 +185,9 @@ func createRESTHandler(tx *contract.Transaction, path string, fe bool) *trigger.
 	res := "res://flow:" + contract.ToSnakeCase(tx.Name)
 	// map all parameters as a single object
 
-	input := make(map[string]interface{})
+	input := map[string]interface{}{
+		"user": "=dovetail.httpUser($.headers)",
+	}
 	if len(tx.Parameters) > 0 {
 		input["parameters"] = "=$.content"
 	}
@@ -222,7 +221,9 @@ func createRESTHandler(tx *contract.Transaction, path string, fe bool) *trigger.
 func createResource(tx *contract.Transaction, schm *trigger.SchemaConfig) (string, *definition.DefinitionRep, error) {
 	id := "flow:" + contract.ToSnakeCase(tx.Name)
 
-	input := make(map[string]data.TypedValue)
+	input := map[string]data.TypedValue{
+		"user": data.NewAttribute("user", data.TypeString, nil),
+	}
 	if len(tx.Parameters) > 0 {
 		input["parameters"] = data.NewAttribute("parameters", data.TypeObject, nil)
 	}
@@ -307,7 +308,7 @@ func fabricRequestTask(tx *contract.Transaction, includeSchema bool) *definition
 	}
 
 	actCfg.Input = map[string]interface{}{
-		"userName": "=$flow.parameters." + clientUser,
+		"userName": "=$flow.user",
 	}
 	if len(tx.Parameters) > 0 {
 		actCfg.Input["parameters"] = "=$flow.parameters"
