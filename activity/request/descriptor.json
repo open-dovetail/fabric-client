@@ -11,25 +11,37 @@
             "name": "connectionName",
             "required": true,
             "type": "string",
-            "description": "name to identify a Fabric network to connect"
+            "description": "name to identify a Fabric network to connect",
+            "display": {
+                "appPropertySupport": true
+            }
         },
         {
             "name": "channelID",
             "required": true,
             "type": "string",
-            "description": "the channel where the chaincode is running, e.g., mychannel"
+            "description": "the channel where the chaincode is running, e.g., mychannel",
+            "display": {
+                "appPropertySupport": true
+            }
         },
         {
             "name": "chaincodeID",
             "required": true,
             "type": "string",
-            "description": "name of the chaincode, e.g. marble_cc"
+            "description": "name of the chaincode, e.g. marble_cc",
+            "display": {
+                "appPropertySupport": true
+            }
         },
         {
             "name": "transactionName",
             "required": true,
             "type": "string",
-            "description": "name of the transaction to invoke"
+            "description": "name of the transaction to invoke",
+            "display": {
+                "appPropertySupport": true
+            }
         },
         {
             "name": "parameters",
