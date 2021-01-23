@@ -5,6 +5,7 @@ SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 package plugin
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -18,9 +19,11 @@ import (
 	"github.com/project-flogo/core/app"
 	"github.com/project-flogo/core/data"
 	"github.com/project-flogo/core/data/metadata"
+	"github.com/project-flogo/core/data/schema"
 	"github.com/project-flogo/core/trigger"
 	"github.com/project-flogo/flow/definition"
 	"github.com/spf13/cobra"
+	jschema "github.com/xeipuuv/gojsonschema"
 )
 
 var enterprise bool
@@ -91,20 +94,21 @@ func createRESTApp(spec *contract.Spec, fe bool) (*app.Config, error) {
 	}
 	if fe {
 		// convert and cache app schemas for Flogo Enterprise
-		//if err := spec.ConvertAppSchemas(); err != nil {
-		//	fmt.Printf("failed to convert app schema: %v\n", err)
-		//}
+		if err := spec.ConvertAppSchemas(); err != nil {
+			fmt.Printf("failed to convert app schema: %v\n", err)
+		}
 	}
 
 	// create REST trigger with one handler per transaction
-	ac.Triggers = []*trigger.Config{createRESTTrigger(con, fe)}
+	trig := createRESTTrigger(con, fe)
+	ac.Triggers = []*trigger.Config{trig}
 
 	// create a flow resource per transaction
 	resources := make(map[string]*definition.DefinitionRep)
 	for _, tx := range con.Transactions {
 		var schm *trigger.SchemaConfig
 		if fe {
-			//schm = handlerSchema(trig, tx.Name)
+			schm = handlerSchema(trig, tx.Name)
 		}
 		id, res, err := createResource(tx, schm)
 		if err != nil {
@@ -115,17 +119,27 @@ func createRESTApp(spec *contract.Spec, fe bool) (*app.Config, error) {
 
 	if fe {
 		// collect app schema for Flogo Enterprise
-		//if schm, err := getAppSchemas(); err == nil {
-		//	ac.Schemas = schm
-		//} else {
-		//	fmt.Printf("failed to collect app schemas: %v\n", err)
-		//}
+		if schm, err := contract.GetAppSchemas(); err == nil {
+			ac.Schemas = schm
+		} else {
+			fmt.Printf("failed to collect app schemas: %v\n", err)
+		}
 	}
 
 	// serializes resources
 	contract.SetAppResources(ac, resources)
 
 	return ac, nil
+}
+
+// search trigger config for a schema config of a specified transaction name
+func handlerSchema(trigConfig *trigger.Config, txName string) *trigger.SchemaConfig {
+	for _, h := range trigConfig.Handlers {
+		if h.Name == txName {
+			return h.Schemas
+		}
+	}
+	return nil
 }
 
 func fabricSampleProperties() []*data.Attribute {
@@ -208,13 +222,110 @@ func createRESTHandler(tx *contract.Transaction, path string, fe bool) *trigger.
 	handler.Actions = []*trigger.ActionConfig{action}
 	if fe {
 		// set handler schema for Flogo enterprise
-		//if schm, err := tx.ToHandlerSchema(); err == nil {
-		//	handler.Schemas = schm
-		//} else {
-		//	fmt.Printf("failed to convert handler schema for transaction %s: %v\n", tx.Name, err)
-		//}
+		handler.Schemas = createHandlerSchema(tx)
 	}
 	return handler
+}
+
+func parameterSchemaDef(tx *contract.Transaction) *schema.Def {
+	if len(tx.Parameters) == 0 {
+		return nil
+	}
+	props := make(map[string]interface{})
+
+	for _, p := range tx.Parameters {
+		props[p.Name] = p.Schema
+	}
+	ps := map[string]interface{}{
+		"type":       jschema.TYPE_OBJECT,
+		"properties": props,
+	}
+	if pbytes, err := json.Marshal(ps); err == nil {
+		return &schema.Def{
+			Type:  "json",
+			Value: string(pbytes),
+		}
+	}
+	return nil
+}
+
+func transientSchemaDef(tx *contract.Transaction) *schema.Def {
+	if len(tx.Transient) == 0 {
+		return nil
+	}
+
+	ts := map[string]interface{}{
+		"type":       jschema.TYPE_OBJECT,
+		"properties": tx.Transient,
+	}
+	if pbytes, err := json.Marshal(ts); err == nil {
+		return &schema.Def{
+			Type:  "json",
+			Value: string(pbytes),
+		}
+	}
+	return nil
+}
+
+func createHandlerSchema(tx *contract.Transaction) *trigger.SchemaConfig {
+	result := &trigger.SchemaConfig{}
+
+	if len(tx.Returns) > 0 {
+		// convert returns schema
+		rs := map[string]interface{}{
+			"type": jschema.TYPE_OBJECT,
+			"properties": map[string]interface{}{
+				"message": map[string]interface{}{
+					"type": jschema.TYPE_STRING,
+				},
+				"result": tx.Returns,
+			},
+		}
+		if _, err := contract.ExpandRef(rs); err == nil {
+			if rbytes, err := json.Marshal(rs); err == nil {
+				result.Reply = map[string]interface{}{
+					"data": &schema.Def{
+						Type:  "json",
+						Value: string(rbytes),
+					},
+				}
+			}
+		}
+	}
+
+	// convert parameters schema
+	ps := make(map[string]interface{})
+	if len(tx.Parameters) > 0 {
+		for _, p := range tx.Parameters {
+			ps[p.Name] = p.Schema
+		}
+	}
+
+	// convert transient schema
+	if len(tx.Transient) > 0 {
+		if _, err := contract.ExpandRef(tx.Transient); err == nil {
+			ts := map[string]interface{}{
+				"type":       jschema.TYPE_OBJECT,
+				"properties": tx.Transient,
+			}
+			ps["transient"] = ts
+		}
+	}
+
+	content := map[string]interface{}{
+		"type":       jschema.TYPE_OBJECT,
+		"properties": ps,
+	}
+
+	if pbytes, err := json.Marshal(content); err == nil {
+		result.Output = map[string]interface{}{
+			"content": &schema.Def{
+				Type:  "json",
+				Value: string(pbytes),
+			},
+		}
+	}
+	return result
 }
 
 // create REST flow resource for a contract transaction
@@ -234,20 +345,20 @@ func createResource(tx *contract.Transaction, schm *trigger.SchemaConfig) (strin
 	includeSchema := false
 	if schm != nil {
 		// add schema info for Flogo Enterprise
-		//includeSchema = true
-		//if len(tx.Parameters) > 0 {
-		//	if sc := extractFlowSchema(schm.Output["parameters"]); sc != nil {
-		//		input["parameters"] = data.NewAttributeWithSchema("parameters", data.TypeObject, nil, sc)
-		//	}
-		//}
-		//if len(tx.Transient) > 0 {
-		//	if sc := extractFlowSchema(schm.Output["transient"]); sc != nil {
-		//		input["transient"] = data.NewAttributeWithSchema("transient", data.TypeObject, nil, sc)
-		//	}
-		//}
-		//if sc := extractFlowSchema(schm.Reply["data"]); sc != nil {
-		//	rAttr = data.NewAttributeWithSchema("data", data.TypeAny, nil, sc)
-		//}
+		includeSchema = true
+		if len(tx.Parameters) > 0 {
+			if sc := contract.ExtractFlowSchema(parameterSchemaDef(tx)); sc != nil {
+				input["parameters"] = data.NewAttributeWithSchema("parameters", data.TypeObject, nil, sc)
+			}
+		}
+		if len(tx.Transient) > 0 {
+			if sc := contract.ExtractFlowSchema(transientSchemaDef(tx)); sc != nil {
+				input["transient"] = data.NewAttributeWithSchema("transient", data.TypeObject, nil, sc)
+			}
+		}
+		if sc := contract.ExtractFlowSchema(schm.Reply["data"]); sc != nil {
+			rAttr = data.NewAttributeWithSchema("data", data.TypeAny, nil, sc)
+		}
 	}
 
 	md := &metadata.IOMetadata{
@@ -265,23 +376,12 @@ func createResource(tx *contract.Transaction, schm *trigger.SchemaConfig) (strin
 
 	// add fabric request and return task resources
 	res.Tasks = append(res.Tasks, fabricRequestTask(tx, includeSchema))
-	res.Tasks = append(res.Tasks, returnTask(tx, includeSchema, true))
-	res.Tasks = append(res.Tasks, returnTask(tx, includeSchema, false))
+	res.Tasks = append(res.Tasks, returnTask())
 
 	// add links
 	link := &definition.LinkRep{
 		FromID: "request_1",
 		ToID:   "actreturn_1",
-		Type:   "expression",
-		Value:  "$activity[request_1].code < 300",
-	}
-	res.Links = append(res.Links, link)
-
-	link = &definition.LinkRep{
-		FromID: "request_1",
-		ToID:   "actreturn_2",
-		Type:   "expression",
-		Value:  "$activity[request_1].code >= 300",
 	}
 	res.Links = append(res.Links, link)
 
@@ -310,15 +410,45 @@ func fabricRequestTask(tx *contract.Transaction, includeSchema bool) *definition
 	actCfg.Input = map[string]interface{}{
 		"userName": "=$flow.user",
 	}
+	schemaInput := make(map[string]interface{})
 	if len(tx.Parameters) > 0 {
 		actCfg.Input["parameters"] = "=$flow.parameters"
+		if includeSchema {
+			pdef := parameterSchemaDef(tx)
+			schemaInput["parameters"] = &contract.FlowSchema{
+				SchemaType:  pdef.Type,
+				SchemaValue: pdef.Value,
+			}
+		}
 	}
 	if len(tx.Transient) > 0 {
 		actCfg.Input["transient"] = "=$flow.transient"
+		if includeSchema {
+			tdef := transientSchemaDef(tx)
+			schemaInput["transient"] = &contract.FlowSchema{
+				SchemaType:  tdef.Type,
+				SchemaValue: tdef.Value,
+			}
+		}
 	}
 
 	if includeSchema {
-		//actCfg.Schemas = a.toActivitySchemas()
+		actCfg.Schemas = &activity.SchemaConfig{
+			Input: schemaInput,
+		}
+		rs := map[string]interface{}{
+			"result": tx.Returns,
+		}
+		if _, err := contract.ExpandRef(rs); err == nil {
+			if rbytes, err := json.Marshal(rs["result"]); err == nil {
+				actCfg.Schemas.Output = map[string]interface{}{
+					"result": &contract.FlowSchema{
+						SchemaType:  "json",
+						SchemaValue: string(rbytes),
+					},
+				}
+			}
+		}
 	}
 
 	return &definition.TaskRep{
@@ -340,31 +470,25 @@ func isReadOnly(tx *contract.Transaction) bool {
 	return true
 }
 
-// create return task resource from transaction spec
-func returnTask(tx *contract.Transaction, includeSchema, ok bool) *definition.TaskRep {
+// create return task resource
+func returnTask() *definition.TaskRep {
 	actCfg := &activity.Config{
 		Ref: "#actreturn",
-	}
-
-	rtnData := "result"
-	taskID := "actreturn_1"
-	if !ok {
-		rtnData = "message"
-		taskID = "actreturn_2"
 	}
 	actCfg.Settings = map[string]interface{}{
 		"mappings": map[string]interface{}{
 			"code": "=$activity[request_1].code",
-			"data": "=$activity[request_1]." + rtnData,
+			"data": map[string]interface{}{
+				"mapping": map[string]interface{}{
+					"message": "=$activity[request_1].message",
+					"result":  "=$activity[request_1].result",
+				},
+			},
 		},
 	}
 
-	if includeSchema {
-		//actCfg.Schemas = a.toActivitySchemas()
-	}
-
 	return &definition.TaskRep{
-		ID:             taskID,
+		ID:             "actreturn_1",
 		Name:           "Return",
 		ActivityCfgRep: actCfg,
 	}
