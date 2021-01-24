@@ -28,10 +28,10 @@ run:
 
 .PHONY: test
 test:
-	curl -X PUT "http://localhost:7979/asset/initledger"
+	curl -u Admin: -X PUT "http://localhost:7979/asset/initledger"
 	sleep 5
-	curl -X GET "http://localhost:7979/asset/readasset?id=asset1"
-	curl -X GET "http://localhost:7979/asset/readasset?id=asset2"
+	curl -u Admin: -X GET "http://localhost:7979/asset/readasset?id=asset1"
+	curl -u Admin: -X GET "http://localhost:7979/asset/readasset?id=asset2"
 
 .PHONY: start
 start:

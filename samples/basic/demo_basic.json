@@ -4,177 +4,8 @@
   "version": "0.0.1",
   "appModel": "1.1.0",
   "description": "",
-  "imports": [
-    "github.com/open-dovetail/fabric-client/activity/request",
-    "github.com/project-flogo/contrib/activity/actreturn",
-    "github.com/project-flogo/contrib/trigger/rest",
-    "github.com/project-flogo/flow"
-  ],
-  "triggers": [{
-    "id": "receive_http_message",
-    "ref": "#rest",
-    "name": "Receive HTTP Message",
-    "description": "Simple REST Trigger",
-    "settings": {
-      "port": "=$property[\"PORT\"]"
-    },
-    "handlers": [{
-        "settings": {
-          "method": "PUT",
-          "path": "/asset/initledger"
-        },
-        "action": {
-          "ref": "#flow",
-          "settings": {
-            "flowURI": "res://flow:init_ledger"
-          },
-          "output": {
-            "code": "=$.code",
-            "data": "=$.data"
-          }
-        }
-      },
-      {
-        "settings": {
-          "method": "GET",
-          "path": "/asset/readasset"
-        },
-        "action": {
-          "ref": "#flow",
-          "settings": {
-            "flowURI": "res://flow:read_asset"
-          },
-          "input": {
-            "parameters": {
-              "mapping": {
-                "id": "=$.queryParams.id"
-              }
-            }
-          },
-          "output": {
-            "code": "=$.code",
-            "data": "=$.data"
-          }
-        }
-      }
-    ]
-  }],
-  "resources": [{
-      "id": "flow:init_ledger",
-      "data": {
-        "name": "InitLedger",
-        "metadata": {
-          "output": [{
-              "name": "code",
-              "type": "integer"
-            },
-            {
-              "name": "data",
-              "type": "any"
-            }
-          ]
-        },
-        "tasks": [{
-            "id": "request_2",
-            "name": "Fabric Request",
-            "description": "This activity sends a Fabric client request",
-            "activity": {
-              "ref": "#request",
-              "input": {
-                "userName": "=$property[\"APPUSER\"]"
-              },
-              "settings": {
-                "connectionName": "=$property[\"NETWORK\"]",
-                "channelID": "=$property[\"CHANNEL\"]",
-                "chaincodeID": "=$property[\"CHAINCODE\"]",
-                "transactionName": "InitLedger",
-                "requestType": "invoke"
-              }
-            }
-          },
-          {
-            "id": "actreturn_3",
-            "name": "Return",
-            "description": "Return Activity",
-            "activity": {
-              "ref": "#actreturn",
-              "settings": {
-                "mappings": {
-                  "code": "=$activity[request_2].code",
-                  "data": "=$activity[request_2].message"
-                }
-              }
-            }
-          }
-        ],
-        "links": [{
-          "from": "request_2",
-          "to": "actreturn_3"
-        }]
-      }
-    },
+  "properties": [
     {
-      "id": "flow:read_asset",
-      "data": {
-        "name": "ReadAsset",
-        "metadata": {
-          "input": [{
-            "name": "parameters",
-            "type": "object"
-          }],
-          "output": [{
-              "name": "code",
-              "type": "integer"
-            },
-            {
-              "name": "data",
-              "type": "any"
-            }
-          ]
-        },
-        "tasks": [{
-            "id": "request_2",
-            "name": "Fabric Request",
-            "description": "This activity sends a Fabric client request",
-            "activity": {
-              "ref": "#request",
-              "input": {
-                "userName": "=$property[\"APPUSER\"]",
-                "parameters": "=$flow.parameters"
-              },
-              "settings": {
-                "chaincodeID": "=$property[\"CHAINCODE\"]",
-                "channelID": "=$property[\"CHANNEL\"]",
-                "connectionName": "=$property[\"NETWORK\"]",
-                "parameters": "id",
-                "requestType": "query",
-                "transactionName": "ReadAsset"
-              }
-            }
-          },
-          {
-            "id": "actreturn_3",
-            "name": "Return",
-            "description": "Return Activity",
-            "activity": {
-              "ref": "#actreturn",
-              "settings": {
-                "mappings": {
-                  "code": "=$activity[request_2].code",
-                  "data": "=$activity[request_2].result"
-                }
-              }
-            }
-          }
-        ],
-        "links": [{
-          "from": "request_2",
-          "to": "actreturn_3"
-        }]
-      }
-    }
-  ],
-  "properties": [{
       "name": "CHAINCODE",
       "type": "string",
       "value": "basic"
@@ -198,6 +29,215 @@
       "name": "APPUSER",
       "type": "string",
       "value": "Admin"
+    }
+  ],
+  "imports": [
+    "github.com/open-dovetail/dovetail-contrib/function/dovetail",
+    "github.com/open-dovetail/dovetail-contrib/trigger/rest",
+    "github.com/open-dovetail/fabric-client/activity/request",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/flow"
+  ],
+  "triggers": [
+    {
+      "id": "receive_http_message",
+      "ref": "#rest",
+      "name": "Receive HTTP Message",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": "=$property[\"PORT\"]"
+      },
+      "handlers": [
+        {
+          "settings": {
+            "method": "PUT",
+            "path": "/asset/initledger"
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:init_ledger"
+            },
+            "input": {
+              "user": "=dovetail.httpUser($.headers)"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          }
+        },
+        {
+          "settings": {
+            "method": "GET",
+            "path": "/asset/readasset"
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:read_asset"
+            },
+            "input": {
+              "parameters": {
+                "mapping": {
+                  "id": "=$.queryParams.id"
+                }
+              },
+              "user": "=dovetail.httpUser($.headers)"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:init_ledger",
+      "data": {
+        "name": "InitLedger",
+        "metadata": {
+          "input": [
+            {
+              "name": "user",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "request_2",
+            "name": "Fabric Request",
+            "description": "This activity sends a Fabric client request",
+            "activity": {
+              "ref": "#request",
+              "input": {
+                "userName": "=$flow.user"
+              },
+              "settings": {
+                "connectionName": "=$property[\"NETWORK\"]",
+                "channelID": "=$property[\"CHANNEL\"]",
+                "chaincodeID": "=$property[\"CHAINCODE\"]",
+                "transactionName": "InitLedger",
+                "requestType": "invoke"
+              }
+            }
+          },
+          {
+            "id": "actreturn_3",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": "=$activity[request_2].code",
+                  "data": {
+                    "mapping": {
+                      "message": "=$activity[request_2].message",
+                      "result": "=$activity[request_2].result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "request_2",
+            "to": "actreturn_3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:read_asset",
+      "data": {
+        "name": "ReadAsset",
+        "metadata": {
+          "input": [
+            {
+              "name": "parameters",
+              "type": "object"
+            },
+            {
+              "name": "user",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "any"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "request_2",
+            "name": "Fabric Request",
+            "description": "This activity sends a Fabric client request",
+            "activity": {
+              "ref": "#request",
+              "input": {
+                "parameters": "=$flow.parameters",
+                "userName": "=$flow.user"
+              },
+              "settings": {
+                "chaincodeID": "=$property[\"CHAINCODE\"]",
+                "channelID": "=$property[\"CHANNEL\"]",
+                "connectionName": "=$property[\"NETWORK\"]",
+                "parameters": "id",
+                "requestType": "query",
+                "transactionName": "ReadAsset"
+              }
+            }
+          },
+          {
+            "id": "actreturn_3",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": "=$activity[request_2].code",
+                  "data": {
+                    "mapping": {
+                      "message": "=$activity[request_2].message",
+                      "result": "=$activity[request_2].result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "request_2",
+            "to": "actreturn_3"
+          }
+        ]
+      }
     }
   ]
 }
