@@ -18,7 +18,7 @@ NETWORK       := $(REPO_PATH)/test-network/config.yaml
 MATCHER       := $(REPO_PATH)/test-network/local_entity_matchers.yaml
 
 # uncomment this line to build for Flogo Enterprise
-FE            := -e
+#FE            := -e
 CHAINCODE     := sample_cc
 PORT          := 7979
 
