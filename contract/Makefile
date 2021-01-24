@@ -19,6 +19,8 @@ MATCHER       := $(REPO_PATH)/test-network/local_entity_matchers.yaml
 
 # uncomment this line to build for Flogo Enterprise
 FE            := -e
+CHAINCODE     := sample_cc
+PORT          := 7979
 
 .PHONY: all
 all: build
@@ -35,11 +37,16 @@ build: $(CONTRACT) clean
 
 .PHONY: run
 run:
-	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=7979 FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations $(SRC_PATH)/$(APP_NAME)_app
+	FLOGO_APP_PROP_RESOLVERS=env FLOGO_APP_PROPS_ENV=auto PORT=$(PORT) CHAINCODE=$(CHAINCODE) FLOGO_LOG_LEVEL=DEBUG FLOGO_SCHEMA_SUPPORT=true FLOGO_SCHEMA_VALIDATION=false CRYPTO_PATH=$(FAB_PATH)/test-network/organizations $(SRC_PATH)/$(APP_NAME)_app
 
 .PHONY: test
 test:
-	curl -u Admin: -X PUT "http://localhost:7979/asset/initledger"
-	sleep 5
-	curl -u Admin: -X GET "http://localhost:7979/asset/readasset?id=asset1"
-	curl -u Admin: -X GET "http://localhost:7979/asset/readasset?id=asset2"
+	curl -u broker: -X POST -H 'Content-Type: application/json' -d '{"name":"marble20","color":"blue","size":35,"owner":"tom"}' http://localhost:$(PORT)/marble/createmarble
+	sleep 3
+	curl -u tom: -X POST -H 'Content-Type: application/json' -d '{"name":"marble20","newOwner":"jerry"}' http://localhost:$(PORT)/marble/transfermarble
+	sleep 3
+	curl -u tom: -X POST -H "Content-Type: application/json" -d '{"name":"marble20"}' "http://localhost:$(PORT)/marble/gethistory"
+	curl -u jerry@org2: -X POST -H 'Content-Type: application/json' -d '{"owner":"jerry"}' http://localhost:$(PORT)/marble/querymarblesbyowner
+	curl -u jerry@org2: -X POST -H 'Content-Type: application/json' -d '{"color":"blue","newOwner":"tom"}' http://localhost:$(PORT)/marble/transfermarblesbasedoncolor
+	sleep 3
+	curl -u tom: -X POST -H "Content-Type: application/json" -d '{"name":"marble20"}' "http://localhost:$(PORT)/marble/gethistory"
