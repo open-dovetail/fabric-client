@@ -65,3 +65,21 @@ func TestClient(t *testing.T) {
 	logger.Infof("Query asset6 result: %s", string(result))
 	assert.NotEqual(t, origValue, result, "original %s should different from %s", string(origValue), string(result))
 }
+
+func TestNetworkConfigYaml(t *testing.T) {
+	os.Setenv("CRYPTO_PATH", cryptoPath)
+	networkConfig, err := ReadFile(testConfig)
+	require.NoError(t, err, "failed to read config file %s", testConfig)
+	cs := ConnectorSpec{
+		NetworkConfig: networkConfig,
+	}
+	f := orgFilter(cs).(*OrgFilter)
+	assert.Equal(t, "Org1MSP", f.MSPID, "default MSPID should be 'Org1MSP'")
+
+	cs = ConnectorSpec{
+		NetworkConfig: networkConfig,
+		OrgName:       "org2",
+	}
+	f = orgFilter(cs).(*OrgFilter)
+	assert.Equal(t, "Org2MSP", f.MSPID, "org2's MSPID should be 'Org2MSP'")
+}

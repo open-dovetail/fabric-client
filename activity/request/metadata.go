@@ -5,6 +5,7 @@ SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 package request
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -28,6 +29,7 @@ type Settings struct {
 	TransactionName string       `md:"transactionName,required"`
 	Arguments       []*Attribute `md:"arguments"`
 	RequestType     string       `md:"requestType,required"`
+	UserOrgOnly     bool         `md:"userOrgOnly"`
 }
 
 // Input of the activity
@@ -85,6 +87,9 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	if h.RequestType, err = coerce.ToString(values["requestType"]); err != nil {
 		return err
 	}
+	if h.UserOrgOnly, err = coerce.ToBool(values["userOrgOnly"]); err != nil {
+		return err
+	}
 
 	params, err := coerce.ToString(values["parameters"])
 	if err != nil {
@@ -117,9 +122,13 @@ func (i *Input) ToMap() map[string]interface{} {
 		eps = append(eps, p)
 	}
 
+	user := i.UserName
+	if len(i.OrgName) > 0 {
+		user += "@" + i.OrgName
+	}
+
 	return map[string]interface{}{
-		"orgName":       i.OrgName,
-		"userName":      i.UserName,
+		"userName":      user,
 		"timeoutMillis": i.TimeoutMillis,
 		"endpoints":     eps,
 		"parameters":    i.Parameters,
@@ -130,13 +139,19 @@ func (i *Input) ToMap() map[string]interface{} {
 // FromMap sets activity input values from a map
 func (i *Input) FromMap(values map[string]interface{}) error {
 
-	var err error
-	if i.OrgName, err = coerce.ToString(values["orgName"]); err != nil {
+	user, err := coerce.ToString(values["userName"])
+	if err != nil {
 		return err
 	}
-	if i.UserName, err = coerce.ToString(values["userName"]); err != nil {
-		return err
+	tokens := strings.Split(strings.TrimSpace(user), "@")
+	if len(tokens) == 0 {
+		return errors.New("username is not specified")
 	}
+	i.UserName = strings.TrimSpace(tokens[0])
+	if len(tokens) > 1 {
+		i.OrgName = strings.TrimSpace(tokens[1])
+	}
+
 	if i.TimeoutMillis, err = coerce.ToInt(values["timeoutMillis"]); err != nil {
 		return err
 	}

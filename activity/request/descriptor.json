@@ -54,18 +54,18 @@
             "type": "string",
             "description": "Fabric request type",
             "allowed": ["invoke", "query"]
+        },
+        {
+            "name": "userOrgOnly",
+            "type": "boolean",
+            "description": "if true, add peer filter to limit peers operated by the user's org only"
         }
     ],
     "inputs": [{
-            "name": "orgName",
-            "type": "string",
-            "description": "name of the user's organization. default value is the client org in network config."
-        },
-        {
             "name": "userName",
             "required": true,
             "type": "string",
-            "description": "client user name of the specified organization, e.g., Admin or User1"
+            "description": "client user name of an organization, e.g., Admin@org1 or User1; if org is not specified, use client org in the network config"
         },
         {
             "name": "timeoutMillis",

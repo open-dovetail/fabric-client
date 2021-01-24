@@ -19,6 +19,7 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -35,6 +36,7 @@ type FabricClient struct {
 	client        *channel.Client
 	timeoutMillis int
 	endpoints     []string
+	filter        fab.TargetFilter
 }
 
 // ConnectorSpec contains configuration parameters of a Fabric connector
@@ -47,11 +49,43 @@ type ConnectorSpec struct {
 	ChannelID      string
 	TimeoutMillis  int
 	Endpoints      []string
+	UserOrgOnly    bool
+}
+
+// OrgFilter implements TargetFilter interface for target peers
+type OrgFilter struct {
+	MSPID string
+}
+
+// Accept implements fab.TargetFilter interface
+func (f *OrgFilter) Accept(peer fab.Peer) bool {
+	return peer.MSPID() == f.MSPID
+}
+
+func orgFilter(config ConnectorSpec) fab.TargetFilter {
+	var data map[string]interface{}
+	yaml.Unmarshal(config.NetworkConfig, &data)
+	msps := make(map[string]string)
+	defaultOrg := data["client"].(map[interface{}]interface{})["organization"]
+	for k, v := range data["organizations"].(map[interface{}]interface{}) {
+		mspid := v.(map[interface{}]interface{})["mspid"]
+		msps[k.(string)] = mspid.(string)
+	}
+
+	orgName := defaultOrg.(string)
+	if len(config.OrgName) > 0 {
+		orgName = config.OrgName
+	}
+
+	if mspid, ok := msps[orgName]; ok && len(mspid) > 0 {
+		return &OrgFilter{MSPID: mspid}
+	}
+	return nil
 }
 
 // NewFabricClient returns a new or cached fabric client
 func NewFabricClient(config ConnectorSpec) (*FabricClient, error) {
-	clientKey := fmt.Sprintf("%s.%s.%s", config.Name, config.UserName, config.OrgName)
+	clientKey := fmt.Sprintf("%s.%s.%s.%t", config.Name, config.UserName, config.OrgName, config.UserOrgOnly)
 	if fbClient, ok := clientMap[clientKey]; ok && fbClient != nil {
 		fbClient.timeoutMillis = config.TimeoutMillis
 		fbClient.endpoints = config.Endpoints
@@ -76,6 +110,9 @@ func NewFabricClient(config ConnectorSpec) (*FabricClient, error) {
 		client:        client,
 		timeoutMillis: config.TimeoutMillis,
 		endpoints:     config.Endpoints,
+	}
+	if config.UserOrgOnly {
+		fbClient.filter = orgFilter(config)
 	}
 	clientMap[clientKey] = fbClient
 
@@ -123,6 +160,8 @@ func (c *FabricClient) QueryChaincode(ccID, fcn string, args [][]byte, transient
 	if c.endpoints != nil && len(c.endpoints) > 0 {
 		//		fmt.Printf("set target endpoints: %s\n", strings.Join(c.endpoints, ", "))
 		opts = append(opts, channel.WithTargetEndpoints(c.endpoints...))
+	} else if c.filter != nil {
+		opts = append(opts, channel.WithTargetFilter(c.filter))
 	}
 	response, err := c.client.Query(channel.Request{ChaincodeID: ccID, Fcn: fcn, Args: args, TransientMap: transient}, opts...)
 	if err != nil {
@@ -141,6 +180,8 @@ func (c *FabricClient) ExecuteChaincode(ccID, fcn string, args [][]byte, transie
 	if c.endpoints != nil && len(c.endpoints) > 0 {
 		//		fmt.Printf("set target endpoints: %s\n", strings.Join(c.endpoints, ", "))
 		opts = append(opts, channel.WithTargetEndpoints(c.endpoints...))
+	} else if c.filter != nil {
+		opts = append(opts, channel.WithTargetFilter(c.filter))
 	}
 	response, err := c.client.Execute(channel.Request{ChaincodeID: ccID, Fcn: fcn, Args: args, TransientMap: transient}, opts...)
 	if err != nil {

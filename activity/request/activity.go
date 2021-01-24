@@ -49,6 +49,7 @@ type Activity struct {
 	transactionName string
 	arguments       []*Attribute
 	requestType     string
+	userOrgOnly     bool
 }
 
 // New creates a new Activity
@@ -67,6 +68,7 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 		transactionName: s.TransactionName,
 		arguments:       s.Arguments,
 		requestType:     s.RequestType,
+		userOrgOnly:     s.UserOrgOnly,
 	}, nil
 }
 
@@ -153,6 +155,7 @@ func (a *Activity) getFabricClient(input *Input) (*FabricClient, error) {
 		ChannelID:      a.channelID,
 		TimeoutMillis:  input.TimeoutMillis,
 		Endpoints:      input.Endpoints,
+		UserOrgOnly:    a.userOrgOnly,
 	})
 }
 

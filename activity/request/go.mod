@@ -15,4 +15,5 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/xeipuuv/gojsonschema v1.1.0
 	go.uber.org/multierr v1.6.0 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 )
