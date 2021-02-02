@@ -73,13 +73,26 @@ func TestNetworkConfigYaml(t *testing.T) {
 	cs := ConnectorSpec{
 		NetworkConfig: networkConfig,
 	}
-	f := orgFilter(cs).(*OrgFilter)
-	assert.Equal(t, "Org1MSP", f.MSPID, "default MSPID should be 'Org1MSP'")
+	fbc := &FabricClient{}
+	fbc.setOrgFilter(cs)
+	assert.Equal(t, "Org1MSP", fbc.filter.(*OrgFilter).MSPID, "default MSPID should be 'Org1MSP'")
 
 	cs = ConnectorSpec{
 		NetworkConfig: networkConfig,
 		OrgName:       "org2",
 	}
-	f = orgFilter(cs).(*OrgFilter)
-	assert.Equal(t, "Org2MSP", f.MSPID, "org2's MSPID should be 'Org2MSP'")
+	fbc.setOrgFilter(cs)
+	assert.Equal(t, "Org2MSP", fbc.filter.(*OrgFilter).MSPID, "org2's MSPID should be 'Org2MSP'")
+}
+
+func TestUserCert(t *testing.T) {
+	os.Setenv("CRYPTO_PATH", cryptoPath)
+	networkConfig, err := ReadFile(testConfig)
+	require.NoError(t, err, "failed to read config file %s", testConfig)
+	cs := ConnectorSpec{
+		NetworkConfig: networkConfig,
+	}
+	cert := UserCertificate(cs, "User1")
+	logger.Infof("user cert: %s\n", cert)
+	assert.Fail(t, "test")
 }
