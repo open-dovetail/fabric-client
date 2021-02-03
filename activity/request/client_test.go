@@ -94,5 +94,5 @@ func TestUserCert(t *testing.T) {
 	}
 	cert := UserCertificate(cs, "User1")
 	logger.Infof("user cert: %s\n", cert)
-	assert.Fail(t, "test")
+	assert.Contains(t, cert, "CN=User1@org1.example.com", "cert info should contain User1 as cn")
 }
