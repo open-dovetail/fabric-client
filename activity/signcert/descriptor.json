@@ -1,0 +1,46 @@
+{
+    "name": "fabric-signcert",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Fabric Signcert",
+    "description": "This activity returns the signature certificate of a user@org",
+    "author": "TIBCO Lab",
+    "ref": "github.com/open-dovetail/fabric-client/activity/signcert",
+    "homepage": "http://github.com/open-dovetail/fabric-client/tree/master/activity/signcert",
+    "settings": [{
+            "name": "connectionName",
+            "required": true,
+            "type": "string",
+            "description": "name to identify a Fabric network to connect",
+            "display": {
+                "appPropertySupport": true
+            }
+        },
+        {
+            "name": "userOrgOnly",
+            "type": "boolean",
+            "description": "if true, add peer filter to limit peers operated by the user's org only"
+        }
+    ],
+    "inputs": [{
+            "name": "userName",
+            "required": true,
+            "type": "string",
+            "description": "client user name of an organization, e.g., Admin@org1 or User1; if org is not specified, use client org in the network config"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer"
+        },
+        {
+            "name": "message",
+            "type": "string"
+        },
+        {
+            "name": "result",
+            "type": "any",
+            "description": "result can be array or JSON object"
+        }
+    ]
+}
