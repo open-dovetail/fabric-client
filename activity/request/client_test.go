@@ -89,7 +89,7 @@ func TestUserCert(t *testing.T) {
 	os.Setenv("CRYPTO_PATH", cryptoPath)
 	networkConfig, err := ReadFile(testConfig)
 	require.NoError(t, err, "failed to read config file %s", testConfig)
-	cs := ConnectorSpec{
+	cs := &ConnectorSpec{
 		NetworkConfig: networkConfig,
 	}
 	cert := UserCertificate(cs, "User1")

@@ -112,7 +112,7 @@ func yamlChildNode(parent interface{}, name string) (interface{}, bool) {
 }
 
 // UserCertificate returns certificate string of a specified user@org
-func UserCertificate(config ConnectorSpec, user string) string {
+func UserCertificate(config *ConnectorSpec, user string) string {
 	userTokens := strings.Split(user, "@")
 	u := userTokens[0]
 	org := ""
