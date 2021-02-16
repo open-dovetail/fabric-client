@@ -36,7 +36,7 @@ test:
 .PHONY: start
 start:
 	cd $(FAB_PATH)/test-network && ./network.sh up createChannel
-	cd $(FAB_PATH)/test-network && ./network.sh deployCC
+	cd $(FAB_PATH)/test-network && ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
 
 .PHONY: shutdown
 shutdown:
