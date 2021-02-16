@@ -6,25 +6,19 @@ package request
 
 import (
 	"bytes"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 
-	"github.com/grantae/certinfo"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/errors/retry"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
-	pvmsp "github.com/hyperledger/fabric-sdk-go/pkg/common/providers/msp"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
-	"github.com/hyperledger/fabric-sdk-go/pkg/msp"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -109,74 +103,6 @@ func yamlChildNode(parent interface{}, name string) (interface{}, bool) {
 	}
 	c, ok := data[name]
 	return c, ok
-}
-
-// UserCertificate returns certificate string of a specified user@org
-func UserCertificate(config *ConnectorSpec, user string) string {
-	userTokens := strings.Split(user, "@")
-	u := userTokens[0]
-	org := ""
-	if len(userTokens) > 1 {
-		org = userTokens[1]
-	}
-	var data map[interface{}]interface{}
-	yaml.Unmarshal(config.NetworkConfig, &data)
-	cryptoPath := execYamlPath(data, "client.cryptoconfig.path").(string)
-	if len(org) == 0 {
-		// use network client org if user org is not specified
-		org = execYamlPath(data, "client.organization").(string)
-	}
-
-	// find cert file for specified user and org
-	var certStore core.KVStore
-	var mspid interface{}
-	var err error
-	for k, v := range data["organizations"].(map[interface{}]interface{}) {
-		if k.(string) == org {
-			mspid, _ = yamlChildNode(v, "mspid")
-			if pathTemplate, ok := yamlChildNode(v, "cryptoPath"); ok {
-				if !filepath.IsAbs(pathTemplate.(string)) {
-					pathTemplate = filepath.Join(cryptoPath, pathTemplate.(string))
-				}
-				certStore, err = msp.NewFileCertStore(Subst(pathTemplate.(string)))
-			}
-			break
-		}
-	}
-	if err != nil || certStore == nil {
-		logger.Debugf("cannot find crypto path for org %s", org)
-		return ""
-	}
-
-	// read the cert file
-	cert, err := certStore.Load(&pvmsp.IdentityIdentifier{
-		ID:    u,
-		MSPID: mspid.(string),
-	})
-	if err != nil {
-		logger.Debugf("cannot read cert file of %s@%s", u, org)
-		return ""
-	}
-
-	// extract cert info from the certificate
-	block, rest := pem.Decode(cert.([]byte))
-	if block == nil || len(rest) > 0 {
-		logger.Debugf("failed to decode pem cert file of %s@%s", u, org)
-		return ""
-	}
-	blkBytes, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		logger.Debugf("failed to parse x509 certificate of %s@%s", u, org)
-		return ""
-	}
-
-	// print out cert info
-	certText, err := certinfo.CertificateText(blkBytes)
-	if err != nil {
-		logger.Debugf("failed to print cert info of %s@%s", u, org)
-		return ""
-	}
-	return certText
 }
 
 // NewFabricClient returns a new or cached fabric client

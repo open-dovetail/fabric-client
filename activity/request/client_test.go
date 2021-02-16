@@ -84,15 +84,3 @@ func TestNetworkConfigYaml(t *testing.T) {
 	fbc.setOrgFilter(cs)
 	assert.Equal(t, "Org2MSP", fbc.filter.(*OrgFilter).MSPID, "org2's MSPID should be 'Org2MSP'")
 }
-
-func TestUserCert(t *testing.T) {
-	os.Setenv("CRYPTO_PATH", cryptoPath)
-	networkConfig, err := ReadFile(testConfig)
-	require.NoError(t, err, "failed to read config file %s", testConfig)
-	cs := &ConnectorSpec{
-		NetworkConfig: networkConfig,
-	}
-	cert := UserCertificate(cs, "User1")
-	logger.Infof("user cert: %s\n", cert)
-	assert.Contains(t, cert, "CN=User1@org1.example.com", "cert info should contain User1 as cn")
-}
