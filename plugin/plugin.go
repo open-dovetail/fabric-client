@@ -83,7 +83,10 @@ var tplFabricGoFile = `// Do not change this file, it has been generated using f
 // If you change it and rebuild the application your changes might get lost
 package main
 
-import "github.com/open-dovetail/fabric-client/activity/request"
+import (
+	"github.com/open-dovetail/fabric-client/activity/request"
+	"github.com/open-dovetail/fabric-client/activity/signcert"
+)
 
 // embedded flogo app descriptor file
 const fabricConfig string = ` + "`{{.Config}}`" + `
@@ -91,5 +94,6 @@ const fabricMatcher string = ` + "`{{.Matcher}}`" + `
 
 func init () {
 	request.InitializeNetwork([]byte(fabricConfig), []byte(fabricMatcher))
+	signcert.InitializeNetwork([]byte(fabricConfig))
 }
 `
