@@ -9,7 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/open-dovetail/fabric-client/activity/request"
 	"github.com/project-flogo/core/data/mapper"
 	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/support/test"
@@ -18,21 +17,17 @@ import (
 
 var cryptoPath = "../../../hyperledger/fabric-samples/test-network/organizations"
 var testConfig = "../../test-network/config.yaml"
-var testMatchers = "../../test-network/local_entity_matchers.yaml"
 
 func setup() error {
 	logger.Info("Setup network config")
 
 	os.Setenv("CRYPTO_PATH", cryptoPath)
-	netConfig, err := request.ReadFile(testConfig)
+	netConfig, err := ReadFile(testConfig)
 	if err != nil {
 		return err
 	}
-	netMatchers, err := request.ReadFile(testMatchers)
-	if err != nil {
-		return err
-	}
-	request.InitializeNetwork(netConfig, netMatchers)
+
+	InitializeNetwork(netConfig)
 	return nil
 }
 
@@ -54,11 +49,8 @@ func TestSigncert(t *testing.T) {
 	logger.Info("TestSigncert")
 
 	// configure request activity
-	settings := map[string]interface{}{
-		"connectionName": "test-network",
-	}
 	mf := mapper.NewFactory(resolve.GetBasicResolver())
-	ctx := test.NewActivityInitContext(settings, mf)
+	ctx := test.NewActivityInitContext(Settings{}, mf)
 	act, err := New(ctx)
 	assert.NoError(t, err, "create activity instance should not throw error")
 

@@ -11,16 +11,8 @@ import (
 	"github.com/project-flogo/core/data/coerce"
 )
 
-// Attribute describes a name and data type
-type Attribute struct {
-	Name string `md:"name"`
-	Type string `md:"type"`
-}
-
 // Settings of the activity
 type Settings struct {
-	ConnectionName string `md:"connectionName,required"`
-	UserOrgOnly    bool   `md:"userOrgOnly"`
 }
 
 // Input of the activity
@@ -34,19 +26,6 @@ type Output struct {
 	Code    int         `md:"code"`
 	Message string      `md:"message"`
 	Result  interface{} `md:"result"`
-}
-
-// FromMap sets activity settings from a map
-func (h *Settings) FromMap(values map[string]interface{}) error {
-	var err error
-	if h.ConnectionName, err = coerce.ToString(values["connectionName"]); err != nil {
-		return err
-	}
-	if h.UserOrgOnly, err = coerce.ToBool(values["userOrgOnly"]); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ToMap converts activity input to a map
