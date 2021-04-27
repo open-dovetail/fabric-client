@@ -32,7 +32,7 @@ make test
 You can view and edit the generated HTTP service app in a web-browser. First, start the **Flogo Web UI**:
 
 ```bash
-docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
+docker run -it -p 3303:3303 yxuco/flogo-ui eula-accept
 ```
 
 Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then install the required Flogo extensions as listed in [README](https://github.com/open-dovetail/fabric-client#view-and-edit-flogo-model), and import the app by selecting the generated model file `sample_rest.json`.
